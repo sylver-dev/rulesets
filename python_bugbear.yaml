@@ -1,0 +1,116 @@
+id: python_bugbear
+
+language: python
+
+rules:
+    - id: prefix_increment
+      category: smell
+      message: "unary increment is not supported"
+
+      note: "Python does not support the unary prefix increment. Writing ++n is equivalent to +(+(n)), 
+        which equals n. You meant n += 1." 
+
+      query: >
+        match UnaryOperator(
+          operator: Add, 
+          argument: UnaryOperator(operator: Add, argument: Identifier)
+        )
+
+    
+
+    - id: os_environ_assign
+      category: smell
+      message: "assignment to os.environ"
+
+      note: "Assigning to os.environ doesn't clear the environment. Subprocesses are going to see outdated 
+        variables, in disagreement with the current process. Use os.environ.clear() or the env= argument to Popen."
+
+      query: >
+        match Assignment(left: Subscript(value: 'os.environ'))
+
+
+
+    - id: strip_multichar
+      category: smell
+      message: "call to .strip() with a multi-character string"
+
+      note: "Using .strip() with multi-character strings is misleading the reader. It looks like stripping a 
+        substring. Move your character set to a constant if this is deliberate. Use .replace() or 
+        regular expressions to remove string fragments."
+
+      query: >
+        match c@Call(function: Attribute(attribute: 'strip')) when 
+          c.arguments.children.length == 1 
+          && c.arguments.children[0] is String 
+          && c.arguments.children[0].text.length > 3
+
+
+
+    - id: assert_false
+      category: smell
+      message: "assert False"
+
+      note: "Do not assert False (python -O removes these calls), raise AssertionError()"
+
+      query: >
+        match a@AssertStatement when a.children.length == 1 && a.children[0] is False
+
+
+
+    - id: pointless_comparison
+      category: smell
+      message: "pointless comparison"
+
+      note: "Pointless comparison. This comparison does nothing but waste CPU instructions. 
+        Either prepend assert or remove it."
+
+      query: >
+        match c@ComparisonOperator when c.parent is 
+          ExpressionStatement 
+          && (c.parent.parent is Module || c.parent.parent is Block)
+
+
+
+    - id: assertRaises_Exception
+      category: smell
+      message: "assertRaises(Exception) should be considered evil"
+
+      note: "assertRaises(Exception): should be considered evil. It can lead to your test passing even if the 
+        code being tested is never executed due to a typo. Either assert for a more specific exception 
+        (builtin or custom), use assertRaisesRegex, or use the context manager form of assertRaises."
+
+      query: >
+        match c@Call(function: Attribute(attribute: 'assertRaises')) when 
+          c.arguments.children.length == 1 
+          && c.arguments.children[0].text == 'Exception'
+
+
+
+    - id: pointless_contextlib_suppress
+      category: smell
+      message: "not argument passed to contextlib.suppress"  
+
+      note: "No arguments passed to contextlib.suppress. No exceptions will be suppressed and therefore 
+        this context manager is redundant"
+
+      query: >
+        match c@Call when c.function.text.matches(`(contextlib\.)?suppress`) 
+          && c.parent is WithItem 
+          && c.arguments.children.length == 0
+
+
+
+    - id: star_arg_unpacking_after_keyword_arg
+      category: smell
+      message: "star-arg unpacking after a keyword argument is discouraged"
+
+      note: "Star-arg unpacking after a keyword argument is strongly discouraged, because it only works when 
+        the keyword parameter is declared after all parameters supplied by the unpacked sequence, and 
+        this change of ordering can surprise and mislead readers"
+
+      query: >
+        match l@ListSplat when l.previous_sibling is KeywordArgument
+
+
+
+

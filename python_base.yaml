@@ -1,0 +1,147 @@
+id: python_base
+
+language: python
+
+rules:
+    - id: singleton_cmp
+      category: style
+      message: "use 'is' or 'is not' for comparison"
+      note: "Comparisons to single objects, like True, False and None should be done with identity, not 
+        equality. Use 'is' or 'is not'"
+
+      query: >
+        match c@ComparisonOperator when c.children.length == 3 && (c.children[1] is Eq || c.children[1] is NotEq) 
+          && (c.children[0] is None || c.children[0] is True || c.children[0] is False
+              || c.children[2] is None || c.children[2] is True || c.children[2] is False)
+
+
+
+    - id: membership_test
+      category: style
+      message: "membership test of the form: 'not x in'"
+
+      note: "Test for membership shoud use the form 'x not in the_list' rather than 'not x in the_list'"
+
+      query: >
+        match n@NotOperator when 
+          n.argument is ComparisonOperator 
+          && n.argument.operators is In
+
+
+
+    - id: type_comp
+      category: bug
+      message: "type check using comparison operator"
+
+      note: "An object should be compared to a type by using 'isinstance'. This is because 'isinstance' can
+        handle subclasses as well"
+
+      query: >
+        match c@ComparisonOperator when c.children.length == 3 
+          && (c.children[0] is Call(function: 'type') || c.children[2] is Call(function: 'type'))
+          && (c.children[0] is Identifier || c.children[2] is Identifier)
+          && c.children[1] is Eq
+          && !c.children[2].text.matches(`(str)|(list)|(dict)|(int)|(float)|(bool)`)
+
+
+
+    - id: bare_exception
+      category: smell
+      message: "bare 'except:' clause"
+
+      note: "A bare 'except:' clause will catch SystemExit and KeyboardInterrupt exceptions, making it harder
+        to interrupt a program with Control-C, and can disguise other problems. If you want to catch all exceptions
+        that signal program errors, use 'except Exception:'"
+
+      query: >
+        match e@ExceptClause when e.children.length == 1 && e.children[0] is Block
+
+
+
+    - id: lambda_assignment
+      category: style
+      message: "lambda assigned to a variable"
+
+      note: "Lambdas should not be assigned to a variable. Instead, they should be defined as functions.
+            The primary reason for this is debugging. Lambdas show as <lambda> in tracebacks, where 
+            functions will display the function’s name."
+
+      query: >
+        match a@Assignment when a.right is Lambda
+
+
+
+    - id: wildcard_import
+      category: style
+      message: "wildcard import"
+      note: "wildcard imports are discouraged because the programmer often won’t know 
+            where an imported object is defined"
+
+      query: >
+        match WildcardImport
+
+
+
+    - id: ambiguous_var_name
+      category: style
+      message: "ambiguous variable name"
+      note: "variables named I, O and l can be very hard to read"
+
+      query: >
+        match i@Identifier when i.text.matches(`^(I|O|l)$`) 
+          && i.parent is Assignment 
+          && i.parent.right != null
+          && i.text != i.parent.right.text
+
+
+
+    - id: ambiguous_class_name
+      category: style
+      message: "ambiguous class name"
+      note: "classes named I, O and l can be very hard to read. This is because the letter I and 
+        the letter l are easily confused, and the letter O and the number 0 can be easily confused."
+
+      query: >
+        match i@Identifier when 
+          i.text.matches(`^(I|O|l)$`) 
+          && i.parent is ClassDefinition 
+          && i.text == i.parent.name.text
+
+
+
+    - id: ambiguous_function_name
+      category: style
+      message: "ambiguous function name"
+      note: "functions named I, O and l can be very hard to read. This is because the letter I and 
+        the letter l are easily confused, and the letter O and the number 0 can be easily confused."
+
+      query: >
+        match i@Identifier when 
+          i.text.matches(`^(I|O|l)$`) 
+          && i.parent is FunctionDefinition 
+          && i.text == i.parent.name.text
+
+
+
+    - id: has_key_deprecated
+      category: deprecated
+      message: ".has_key() is deprecated"
+      note: "'.has_key()' was deprecated in Python 2. It is recommended to use the 'in' operator instead"
+
+      query: >
+        match c@Call when 
+          c.function is Attribute
+          && c.function.attribute is Identifier
+          && c.function.attribute.text == 'has_key'
+
+
+    - id: deprecated_raise
+      category: deprecated
+      message: "form 'raise Exception, message' is deprecated"
+
+      note: "The raise Exception, message form of raising exceptions is deprecated. Use the new form:
+        'raise Exception(message)'"
+
+      query: >
+        match r@RaiseStatement when r.children.length == 1 && r.children[0] is ExpressionList
+
