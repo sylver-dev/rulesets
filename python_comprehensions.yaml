@@ -1,0 +1,180 @@
+id: python_comprehensions
+
+language: python
+
+rules:
+    - id: unnecessary_generator_list
+      category: style
+      message: "unnecessary generator"
+
+      note: "Rewrite list(f(x) for x in foo) as [f(x) for x in foo]" 
+
+      query: >
+        match Call(function: 'list', arguments: GeneratorExpression)
+
+
+
+    - id: unnecessary_generator_set
+      category: style
+      message: "unnecessary generator"
+
+      note: "Rewrite set(f(x) for x in foo) as {f(x) for x in foo}" 
+
+      query: >
+        match Call(function: 'set', arguments: GeneratorExpression)
+
+
+
+    - id: unnecessary_generator_dict
+      category: style
+      message: "unnecessary generator"
+
+      note: "Rewrite dict((x, f(x)) for x in foo) as {x: f(x) for x in foo}"
+
+      query: >
+        match Call(function: 'dict', arguments: GeneratorExpression)
+
+
+
+    - id: unnecessary_comp_set
+      category: style
+      message: "unnecessary list comprehension"
+
+      note: "Rewrite set([f(x) for x in foo]) as {f(x) for x in foo}"
+
+      query: >
+         match c@Call(function: 'set') when 
+           c.arguments.children.length == 1 
+           && c.arguments.children[0] is ListComprehension
+
+
+
+    - id: unnecessary_comp_dict
+      category: style
+      message: "unnecessary list comprehension"
+
+      note: "Rewrite dict([(x, f(x)) for x in foo]) as {x: f(x) for x in foo}"
+
+      query: >
+         match c@Call(function: 'dict') when 
+           c.arguments.children.length == 1 
+           && c.arguments.children[0] is ListComprehension
+
+
+
+    - id: unnecessary_list_tuple_lit_dict
+      category: style
+      message: "unecessary list or tuple literal"
+
+      note: "It is unnecessary to use a list or tuple literal within a call to dict
+        Rewrite as a dict literal"
+
+      query: >
+        match c@Call(function: 'dict') when 
+          c.arguments.children.length == 1 
+          && (c.arguments.children[0] is List || c.arguments.children[0] is Tuple)
+          && all c.arguments.children[0].children match Tuple
+
+
+
+    - id: unnecessary_list_tuple_lit_set
+      category: style
+      message: "unecessary list or tuple literal"
+
+      note: "It is unnecessary to use a list or tuple literal within a call to set.
+        Rewrite as a dict literal"
+
+      query: >
+        match c@Call(function: 'set') when 
+          c.arguments.children.length == 1 
+          && (c.arguments.children[0] is List || c.arguments.children[0] is Tuple)
+
+
+
+    - id: unnecessary_list_dict_tuple_call
+      category: style
+      message: "unnecessary list/dict/tupple call"
+
+      note: "It's slower to call list,dict or typle than using a literal because the name must because 
+        the name must be looked up in the global scope in case it has been rebound"
+
+      query: >
+        match c@Call when 
+          c.function.text.matches(`^((list)|(dict)|(tuple))$`)
+          && c.arguments.children.length == 0
+
+
+
+
+    - id: unnecessary_dict_call
+      category: style
+      message: "unnecessary dict call"
+
+      note: "Rewrite dict(foo=bar) as {foo: bar}"
+
+      query: >
+        match c@Call(function: 'dict') when
+         all c.arguments.children match KeywordArgument 
+
+
+
+    - id: unnecessary_list_call
+      category: style
+      message: "unnecessary list call"
+
+      note: "It’s unnecessary to use a list around a list comprehension, since it is equivalent without it"
+
+      query: >
+        match c@Call(function: 'list') when
+          c.arguments.children.length == 1
+          && c.arguments.children[0] is ListComprehension
+
+
+
+    - id: unnecessary_list_arround_sorted 
+      category: style
+      message: "unnecessary call to list"
+
+      note: "It’s unnecessary to use list() around sorted() as it already returns a list"
+
+      query: >
+        match c@Call(function: 'list') when 
+          c.arguments.children.length == 1 
+          && c.arguments.children[0] is Call(function: 'sorted')
+
+
+
+    - id: unnecessary_reversed_arround_sorted
+      category: style
+      message: "unnecessary call to reversed"
+
+      note: "It is unnecessary to use reversed() around sorted() as the latter has a reverse argument"
+
+      query: >
+        match c@Call(function: 'reversed') when 
+          c.arguments.children.length == 1 
+          && c.arguments.children[0] is Call(function: 'sorted')
+
+
+
+    - id: unnecessary_list_comprehension
+      category: style
+      message: "unnecessary list comprehension"
+
+      note: "It's unnecessary to use a list comprehension if the elements are unchanged. The iterable
+        should be wrapped in list() instead"
+
+      query: >
+        match l@ListComprehension when l.body.text == l.children[1].left.text
+
+
+
+    - id: unnecessary_set
+      category: style
+      message: "unnecessary set comprehension"
+
+      note: "It's unnecessary to use a set comprehension if the elements are unchanged. The iterable
+        should be wrapped in set() instead"
+
+      query: >
+        match s@SetComprehension when s.body.text == s.children[1].left.text
