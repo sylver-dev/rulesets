@@ -1,0 +1,119 @@
+id: javascript_base
+
+language: javascript
+
+rules:
+    - id: for_direction_decrease
+      category: bug
+      message: "dubious for loop direction"
+      note: "for loop counter decreases, but the condition checks for an upper bound"
+
+      query: >
+        match f@ForStatement(
+          increment: UpdateExpression(operator: Decrement),
+          condition: _([0]: BinaryExpression(operator: LessThan | LessEq))
+        ) 
+
+
+    - id: for_direction_increase
+      category: bug
+      message: "dubious for loop direction"
+      note: "for loop counter increases, but the condition checks for a lower bound"
+
+      query: >
+         match f@ForStatement(
+          increment: UpdateExpression(operator: Increment),
+          condition: _([0]: BinaryExpression(operator: GreaterThan | GreaterEq))
+         ) 
+
+
+
+    - id: getter_return_method
+      category: smell
+      message: "getter without return statement"
+      note: "property getter should contain a return statement"
+
+      query: >
+        match m@MethodDefinition when 
+          m.text.matches(`^get `) 
+          && no m.body.children match ReturnStatement
+
+
+
+    - id: gettern_return_defined_property
+      category: smell
+      message: "getter without return statement"
+      note: "property getter should contain a return statement"
+
+      query: >
+        match c@CallExpression(
+          function: MemberExpression(object: 'Object', property: 'defineProperty'),
+          arguments: a@_ when 
+            a.children.length == 3 &&
+            a.children[2] is _(
+              [0]: Pair(key: 'get', value: f@Function when no f.body.children match ReturnStatement)
+            )
+        ) 
+
+
+
+    - id: no_async_promise_executor
+      category: smell
+      message: "async promise executor"
+      note: "promise exectutor function can be async, however this is usually a mistake for a few reasons:
+        if an async executor function throws an error, the error will be lost and won’t cause the newly-constructed Promise to reject, and if a 
+        Promise executor function is using await, this is usually a sign that it is not actually necessary to use the new Promise constructor, or the scope of the new Promise constructor can be reduced"
+
+      query: >
+        match a@ArrowFunction when a.text.matches(`^async `) && a.parent?.parent is NewExpression(constructor: 'Promise')
+
+
+
+    - id: no_neg_zero_comparison
+      category: smell
+      message: "comparison to -0"
+
+      note: "code like x === -0 will pass for both +0 and -0. The author probably intended Object.is(x, -0)"
+
+      query: >
+        match b@BinaryExpression(operator: EqEqEq | EqEq | LessThan | LessEq | GreaterThan | GreaterEq | NotEq | NotEqEq) when 
+          b.left  is UnaryExpression(operator: Sub, argument: '0') || 
+          b.right is UnaryExpression(operator: Sub, argument: '0')
+
+
+
+
+    - id: no_debugger
+      category: deprecated
+      message: "debugger statement"
+      note: "poduction code should not contain debugger statements, as it will cause the browser to stop executing code and open an appropriate debugger"
+
+      query: match DebuggerStatement
+
+
+
+    - id: no_sparse_array
+      category: smell
+      message: "sparse array"
+      note: "sparse arrays contain empty slots, which might be confusing"
+
+      query: match a@Array when a.text.matches(`(,[\s]*,)|(\[[\s]*,)`)  
+
+
+
+    - id: no_template_syntax_in_string
+      category: smell
+      message: "template literal syntax in regular string"
+
+      query: match s@String when s.text.matches(`\$\{.*\}`)
+
+
+
+    - id: no_unreachable
+      category: smell
+      message: "unreachable statement"
+
+      note: "because the return, throw, break, and continue statements unconditionally exit a block of code, any statements after them cannot be executed"
+
+      query: >
+        match s@Statement when s.previous_sibling is (ReturnStatement | BreakStatement | ContinueStatement | ThrowStatement)
