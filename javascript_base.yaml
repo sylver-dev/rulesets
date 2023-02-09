@@ -117,3 +117,73 @@ rules:
 
       query: >
         match s@Statement when s.previous_sibling is (ReturnStatement | BreakStatement | ContinueStatement | ThrowStatement)
+
+
+
+    - id: implicit_jsx_boolean_flag
+      category: style
+      message: "implicit boolean as JSX prop"
+      note: "use explicit boolean values for boolean JSX props"
+
+      query: match i@Identifier when i.parent is JsxAttribute && i.parent.children.length == 1
+
+
+
+    - id: no_negation_else_if
+      category: style
+      message: 'if condition is a negation'
+      note: 'remove the negation and exchange the consequent and alternative blocks'
+
+      query: >
+        match u@UnaryExpression(operator: Not) when 
+          u.parent?.parent is IfStatement(alternative: ElseClause) 
+          && u.text == u.parent.parent.condition[0].text
+
+
+
+    - id: no_negation_else_ternary
+      category: style
+      message: 'ternary operator condition is a negation'
+      note: 'remove the negation and exchange the consequent and alternate blocks'
+
+      query: >
+        match u@UnaryExpression(operator: Not) when 
+          u.parent is TernaryExpression 
+          && u.text == u.parent.condition.text
+
+
+
+    - id: block_statement
+      category: style
+      message: 'block statements are prefered in this position'
+
+      query: >
+        match e@ExpressionStatement when e.parent is (IfStatement | ElseClause)
+
+
+
+    - id: self_colsing_jsx_when_no_children
+      category: style
+      message: 'use self closing element'
+
+      query: match j@JsxElement when j.children.length == 2
+        
+
+   
+    - id: multi_var_declarator
+      category: style
+      message: 'use one statement per variable declaration'
+
+      query: >
+        match v@VariableDeclarator when 
+          v.previous_sibling is VariableDeclarator 
+          && !(v.parent?.parent is ForStatement)
+
+
+
+    - id: use_while_loop
+      category: style
+      message: 'use a while loop instead of a for loop'
+
+      query: >
+        match f@ForStatement when f.initializer is EmptyStatement && f.increment == null
