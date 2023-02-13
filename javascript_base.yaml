@@ -187,3 +187,64 @@ rules:
 
       query: >
         match f@ForStatement when f.initializer is EmptyStatement && f.increment == null
+
+
+
+    - id: missing_super_call
+      category: error
+      message: 'missing call to super()'
+      note: 'Constructors of derived classes must call super()'
+
+      query: >
+        match m@MethodDefinition(name: 'constructor') when 
+          m.parent.parent is ClassDeclaration([1]: ClassHeritage) 
+          && no m.descendants() match CallExpression(function: 'super')
+
+
+
+    - id: await_in_for
+      category: smell
+      message: 'await in for loop'
+      note: "performing an await as part of each operation is an indication that the program is not taking 
+        full advantage of the parallelization benefits of async/await"
+
+      query: match a@AwaitExpression when any a.parents() match ForInStatement
+
+
+
+    - id: duplicate_param
+      category: bug
+      message: 'duplicate function parameter'
+
+      note: "this parameter shadows a previously declared paramter"
+
+      query: >
+        match i@Identifier when 
+          i.parent is FormalParameters 
+          && any i.previous_siblings() match { s@_ when s.text == i.text }
+
+
+
+    - id: duplicate_class_member
+      category: smell
+      message: 'duplicate class member'
+
+      query: >
+        match m@(FieldDefinition|MethodDefinition) when 
+          any m.previous_siblings() match { 
+            m2@(FieldDefinition|MethodDefinition) when m[0].text == m2[0].text 
+          }
+
+
+
+    - id: duplicate_switch_case
+      category: smell
+      message: 'duplicate switch case'
+      note: 'this is probably a copy-pasting error'
+
+      query: >
+        match v@_ when 
+          v.parent is SwitchCase 
+          && any v.parent.previous_siblings() match { 
+               c@SwitchCase when c.value.text == v.text 
+             }
