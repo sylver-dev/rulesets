@@ -1,0 +1,28 @@
+id: kubernetes_base
+
+language: yaml
+
+rules:
+  - id: deprecated_serviceAccount
+    category: deprecated
+    message: "field 'serviceAccount' is deprecated"
+
+    note: "Use the serviceAccountName field instead. If you must specify serviceAccount, 
+      ensure values for serviceAccount and serviceAccountName match."
+
+    query: >
+      match b@BlockMappingPair(key: 'serviceAccount') when 
+        b.parent?.parent?.parent?.parent is { 
+          p@BlockMapping when any p.children match BlockMappingPair(key: 'kind', [1]: 'Pod') 
+        }
+
+
+
+  - id: latest_tag
+    category: smell
+    message: "dangerous container image tag"
+
+    note: "use a container image with a specific tag other than latest"
+
+    query: >
+      match b@BlockMappingPair(key: 'image') when b[1].text.matches(`(.*:latest)|(^[^:]+$)`)
