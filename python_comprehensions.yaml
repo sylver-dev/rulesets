@@ -165,7 +165,7 @@ rules:
         should be wrapped in list() instead"
 
       query: >
-        match l@ListComprehension when l.body.text == l.children[1].left.text
+        match l@ListComprehension when l.body.text == l.children[1].left.text && no l.children match IfClause
 
 
 
@@ -177,4 +177,4 @@ rules:
         should be wrapped in set() instead"
 
       query: >
-        match s@SetComprehension when s.body.text == s.children[1].left.text
+        match s@SetComprehension when s.body.text == s.children[1].left.text && no s.children match IfClause
