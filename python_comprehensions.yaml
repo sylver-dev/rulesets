@@ -7,7 +7,7 @@ rules:
       category: style
       message: "unnecessary generator"
 
-      note: "Rewrite list(f(x) for x in foo) as [f(x) for x in foo]" 
+      note: "Rewrite list(f(x) for x in foo) as [f(x) for x in foo]"
 
       query: >
         match Call(function: 'list', arguments: GeneratorExpression)
@@ -18,7 +18,7 @@ rules:
       category: style
       message: "unnecessary generator"
 
-      note: "Rewrite set(f(x) for x in foo) as {f(x) for x in foo}" 
+      note: "Rewrite set(f(x) for x in foo) as {f(x) for x in foo}"
 
       query: >
         match Call(function: 'set', arguments: GeneratorExpression)
@@ -43,8 +43,8 @@ rules:
       note: "Rewrite set([f(x) for x in foo]) as {f(x) for x in foo}"
 
       query: >
-         match c@Call(function: 'set') when 
-           c.arguments.children.length == 1 
+         match c@Call(function: 'set') when
+           c.arguments.children.length == 1
            && c.arguments.children[0] is ListComprehension
 
 
@@ -56,8 +56,8 @@ rules:
       note: "Rewrite dict([(x, f(x)) for x in foo]) as {x: f(x) for x in foo}"
 
       query: >
-         match c@Call(function: 'dict') when 
-           c.arguments.children.length == 1 
+         match c@Call(function: 'dict') when
+           c.arguments.children.length == 1
            && c.arguments.children[0] is ListComprehension
 
 
@@ -70,8 +70,8 @@ rules:
         Rewrite as a dict literal"
 
       query: >
-        match c@Call(function: 'dict') when 
-          c.arguments.children.length == 1 
+        match c@Call(function: 'dict') when
+          c.arguments.children.length == 1
           && (c.arguments.children[0] is List || c.arguments.children[0] is Tuple)
           && all c.arguments.children[0].children match Tuple
 
@@ -85,8 +85,8 @@ rules:
         Rewrite as a dict literal"
 
       query: >
-        match c@Call(function: 'set') when 
-          c.arguments.children.length == 1 
+        match c@Call(function: 'set') when
+          c.arguments.children.length == 1
           && (c.arguments.children[0] is List || c.arguments.children[0] is Tuple)
 
 
@@ -95,11 +95,11 @@ rules:
       category: style
       message: "unnecessary list/dict/tupple call"
 
-      note: "It's slower to call list,dict or typle than using a literal because the name must because 
+      note: "It's slower to call list,dict or typle than using a literal because the name must because
         the name must be looked up in the global scope in case it has been rebound"
 
       query: >
-        match c@Call when 
+        match c@Call when
           c.function.text.matches(`^((list)|(dict)|(tuple))$`)
           && c.arguments.children.length == 0
 
@@ -114,7 +114,7 @@ rules:
 
       query: >
         match c@Call(function: 'dict') when
-         all c.arguments.children match KeywordArgument 
+         all c.arguments.children match KeywordArgument
 
 
 
@@ -131,15 +131,15 @@ rules:
 
 
 
-    - id: unnecessary_list_arround_sorted 
+    - id: unnecessary_list_arround_sorted
       category: style
       message: "unnecessary call to list"
 
       note: "It’s unnecessary to use list() around sorted() as it already returns a list"
 
       query: >
-        match c@Call(function: 'list') when 
-          c.arguments.children.length == 1 
+        match c@Call(function: 'list') when
+          c.arguments.children.length == 1
           && c.arguments.children[0] is Call(function: 'sorted')
 
 
@@ -151,8 +151,8 @@ rules:
       note: "It is unnecessary to use reversed() around sorted() as the latter has a reverse argument"
 
       query: >
-        match c@Call(function: 'reversed') when 
-          c.arguments.children.length == 1 
+        match c@Call(function: 'reversed') when
+          c.arguments.children.length == 1
           && c.arguments.children[0] is Call(function: 'sorted')
 
 
@@ -165,7 +165,8 @@ rules:
         should be wrapped in list() instead"
 
       query: >
-        match l@ListComprehension when l.body.text == l.children[1].left.text && no l.children match IfClause
+        match l@ListComprehension when l.children[1] is ForInClause
+          && l.body.text == l.children[1].left.text && no l.children match IfClause
 
 
 
@@ -177,4 +178,5 @@ rules:
         should be wrapped in set() instead"
 
       query: >
-        match s@SetComprehension when s.body.text == s.children[1].left.text && no s.children match IfClause
+        match s@SetComprehension when s.children[1] is ForInClause
+          && s.body.text == s.children[1].left.text && no s.children match IfClause
