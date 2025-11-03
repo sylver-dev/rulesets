@@ -165,8 +165,11 @@ rules:
         should be wrapped in list() instead"
 
       query: >
-        match l@ListComprehension when l.children[1] is ForInClause
-          && l.body.text == l.children[1].left.text && no l.children match IfClause
+        match l@ListComprehension when any l.children match {
+          i@Identifier when any l.children match {
+            f@ForInClause when i.text == f.left.text
+          }
+        } && no l.children match IfClause
 
 
 
@@ -178,5 +181,8 @@ rules:
         should be wrapped in set() instead"
 
       query: >
-        match s@SetComprehension when s.children[1] is ForInClause
-          && s.body.text == s.children[1].left.text && no s.children match IfClause
+        match s@SetComprehension when any s.children match {
+          i@Identifier when any s.children match {
+            f@ForInClause when i.text == f.left.text
+          }
+        } && no s.children match IfClause
